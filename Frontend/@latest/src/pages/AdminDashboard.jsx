@@ -9,6 +9,8 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [postingJob, setPostingJob] = useState(false);
+  const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [stats, setStats] = useState({
     totalJobs: 0,
     activeJobs: 0,
@@ -36,7 +38,7 @@ const AdminDashboard = () => {
         const jobsResponse = await API.getJobs();
         setJobs(jobsResponse.data);
         
-        const applicationsResponse = await API.getApplications();
+        const applicationsResponse = await API.getAllApplications();
         setApplications(applicationsResponse.data);
         
         // Calculate stats
@@ -69,12 +71,12 @@ const AdminDashboard = () => {
     try {
       await API.updateJob(jobId, { status: newStatus });
       setJobs(jobs.map(job => 
-        job._id === jobId ? { ...job, status: newStatus } : job
+        job.id === jobId ? { ...job, status: newStatus } : job
       ));
       
       // Update stats
       const activeJobs = jobs.filter(job => 
-        job._id === jobId ? newStatus === 'active' : job.status === 'active'
+        job.id === jobId ? newStatus === 'active' : job.status === 'active'
       ).length;
       setStats(prev => ({ ...prev, activeJobs }));
     } catch (error) {
@@ -87,18 +89,36 @@ const AdminDashboard = () => {
     try {
       await API.updateApplication(applicationId, { status: newStatus });
       setApplications(applications.map(app => 
-        app._id === applicationId ? { ...app, status: newStatus } : app
+        app.id === applicationId ? { ...app, status: newStatus } : app
       ));
       
       // Update stats
       const pendingApplications = applications.filter(app => 
-        app._id === applicationId ? newStatus !== 'pending' : app.status === 'pending'
+        app.id === applicationId ? newStatus !== 'pending' : app.status === 'pending'
       ).length;
       setStats(prev => ({ ...prev, pendingApplications }));
     } catch (error) {
       console.error('Error updating application status:', error);
       alert('Failed to update application status');
     }
+  };
+
+  const handleViewCandidateDetails = (application) => {
+    setSelectedCandidate(application);
+    setShowCandidateModal(true);
+  };
+
+  const handleContactCandidate = (application) => {
+    const { applicant } = application;
+    const emailSubject = encodeURIComponent(`Regarding your application for ${application.job?.title}`);
+    const emailBody = encodeURIComponent(`Dear ${applicant?.name},\n\nThank you for your interest in the ${application.job?.title} position at ${application.job?.company}.\n\nWe would like to discuss your application further.\n\nBest regards,\n${user?.name || 'Hiring Team'}`);
+    
+    window.open(`mailto:${applicant?.email}?subject=${emailSubject}&body=${emailBody}`, '_blank');
+  };
+
+  const closeCandidateModal = () => {
+    setShowCandidateModal(false);
+    setSelectedCandidate(null);
   };
 
   const handleJobFormChange = (e) => {
@@ -153,10 +173,10 @@ const AdminDashboard = () => {
     
     try {
       await API.deleteJob(jobId);
-      setJobs(jobs.filter(job => job._id !== jobId));
+      setJobs(jobs.filter(job => job.id !== jobId));
       
       // Update stats
-      const deletedJob = jobs.find(job => job._id === jobId);
+      const deletedJob = jobs.find(job => job.id === jobId);
       const wasActive = deletedJob?.status === 'active';
       setStats(prev => ({
         ...prev,
@@ -306,9 +326,9 @@ const AdminDashboard = () => {
                   </thead>
                   <tbody>
                     {applications.slice(0, 5).map((app, index) => (
-                      <tr key={app._id || index}>
+                      <tr key={app.id || index}>
                         <td>New Application</td>
-                        <td>{app.candidateName || 'Anonymous'} - {app.jobTitle}</td>
+                                                    <td>{app.applicant?.name || 'Anonymous'} - {app.job?.title}</td>
                         <td>{new Date(app.createdAt).toLocaleDateString()}</td>
                         <td>
                           <span className={`status-badge ${getStatusBadgeClass(app.status)}`}>
@@ -403,7 +423,7 @@ const AdminDashboard = () => {
                   </thead>
                   <tbody>
                     {jobs.map((job) => (
-                      <tr key={job._id}>
+                      <tr key={job.id}>
                         <td>
                           <div className="job-title-cell">
                             <strong>{job.title}</strong>
@@ -414,13 +434,13 @@ const AdminDashboard = () => {
                         <td>{job.location}</td>
                         <td>
                           <span className="application-count">
-                            {applications.filter(app => app.jobId === job._id).length}
+                            {applications.filter(app => app.jobId === job.id).length}
                           </span>
                         </td>
                         <td>
                           <select
                             value={job.status}
-                            onChange={(e) => handleJobStatusChange(job._id, e.target.value)}
+                            onChange={(e) => handleJobStatusChange(job.id, e.target.value)}
                             className="status-select"
                           >
                             <option value="active">Active</option>
@@ -436,7 +456,7 @@ const AdminDashboard = () => {
                             </button>
                             <button 
                               className="btn-danger"
-                              onClick={() => handleDeleteJob(job._id)}
+                              onClick={() => handleDeleteJob(job.id)}
                             >
                               <span>🗑️</span>
                               Delete
@@ -484,24 +504,24 @@ const AdminDashboard = () => {
                   </thead>
                   <tbody>
                     {applications.map((application) => (
-                      <tr key={application._id}>
+                      <tr key={application.id}>
                         <td>
                           <div className="candidate-cell">
                             <div className="candidate-avatar">
-                              {(application.candidateName || 'A').charAt(0)}
+                              {(application.applicant?.name || 'A').charAt(0)}
                             </div>
                             <div>
-                              <strong>{application.candidateName || 'Anonymous'}</strong>
-                              <small>{application.candidateEmail}</small>
+                              <strong>{application.applicant?.name || 'Anonymous'}</strong>
+                              <small>{application.applicant?.email}</small>
                             </div>
                           </div>
                         </td>
-                        <td>{application.jobTitle}</td>
+                        <td>{application.job?.title}</td>
                         <td>{new Date(application.createdAt).toLocaleDateString()}</td>
                         <td>
                           <select
                             value={application.status}
-                            onChange={(e) => handleApplicationStatusChange(application._id, e.target.value)}
+                            onChange={(e) => handleApplicationStatusChange(application.id, e.target.value)}
                             className="status-select"
                           >
                             <option value="pending">Pending</option>
@@ -513,11 +533,17 @@ const AdminDashboard = () => {
                         </td>
                         <td>
                           <div className="action-buttons">
-                            <button className="btn-secondary">
+                            <button 
+                              className="btn-secondary"
+                              onClick={() => handleViewCandidateDetails(application)}
+                            >
                               <span>👁️</span>
                               View Details
                             </button>
-                            <button className="btn-primary">
+                            <button 
+                              className="btn-primary"
+                              onClick={() => handleContactCandidate(application)}
+                            >
                               <span>📧</span>
                               Contact
                             </button>
@@ -637,6 +663,88 @@ const AdminDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* Candidate Details Modal */}
+        {showCandidateModal && selectedCandidate && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h2>Candidate Details</h2>
+                <button onClick={closeCandidateModal} className="close-btn">×</button>
+              </div>
+              <div className="modal-body">
+                <div className="candidate-info">
+                  <div className="candidate-header">
+                    <div className="candidate-avatar large">
+                      {(selectedCandidate.applicant?.name || 'A').charAt(0)}
+                    </div>
+                    <div>
+                      <h3>{selectedCandidate.applicant?.name || 'Anonymous'}</h3>
+                      <p className="candidate-email">{selectedCandidate.applicant?.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="info-section">
+                    <h4>📞 Contact Information</h4>
+                    <p><strong>Email:</strong> {selectedCandidate.applicant?.email}</p>
+                    <p><strong>Phone:</strong> {selectedCandidate.applicant?.phone || 'Not provided'}</p>
+                  </div>
+
+                  <div className="info-section">
+                    <h4>💼 Application Details</h4>
+                    <p><strong>Position:</strong> {selectedCandidate.job?.title}</p>
+                    <p><strong>Company:</strong> {selectedCandidate.job?.company}</p>
+                    <p><strong>Applied:</strong> {new Date(selectedCandidate.appliedAt).toLocaleDateString()}</p>
+                    <p><strong>Status:</strong> <span className={`status-badge ${getStatusBadgeClass(selectedCandidate.status)}`}>
+                      {selectedCandidate.status}
+                    </span></p>
+                  </div>
+
+                  {selectedCandidate.coverLetter && (
+                    <div className="info-section">
+                      <h4>📝 Cover Letter</h4>
+                      <div className="cover-letter">
+                        {selectedCandidate.coverLetter}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedCandidate.notes && (
+                    <div className="info-section">
+                      <h4>📋 Notes</h4>
+                      <p>{selectedCandidate.notes}</p>
+                    </div>
+                  )}
+
+                  {selectedCandidate.interviewDate && (
+                    <div className="info-section">
+                      <h4>📅 Interview Details</h4>
+                      <p><strong>Date:</strong> {new Date(selectedCandidate.interviewDate).toLocaleDateString()}</p>
+                      {selectedCandidate.interviewLocation && (
+                        <p><strong>Location:</strong> {selectedCandidate.interviewLocation}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  className="btn-primary"
+                  onClick={() => handleContactCandidate(selectedCandidate)}
+                >
+                  <span>📧</span>
+                  Contact Candidate
+                </button>
+                <button 
+                  className="btn-secondary"
+                  onClick={closeCandidateModal}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

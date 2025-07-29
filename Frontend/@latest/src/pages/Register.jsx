@@ -12,10 +12,13 @@ const Register = () => {
     confirmPassword: '',
     role: 'user', // 'user' or 'admin'
     phone: '',
-    company: ''
+    location: '',
+    experience: '',
+    skills: ''
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -61,8 +64,8 @@ const Register = () => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
     
-    if (formData.role === 'admin' && !formData.company.trim()) {
-      newErrors.company = 'Company name is required for employers';
+    if (formData.role === 'admin' && !formData.location.trim()) {
+      newErrors.location = 'Location is required for employers';
     }
     
     setErrors(newErrors);
@@ -80,28 +83,23 @@ const Register = () => {
     
     try {
       const userData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
         email: formData.email,
         password: formData.password,
         role: formData.role,
         phone: formData.phone,
-        company: formData.company
+        location: formData.location,
+        experience: formData.experience,
+        skills: formData.skills
       };
       
       const response = await API.register(userData);
-      const { token, user } = response.data;
       
-      // Store token and user data
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Redirect based on user role
-      if (user.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/user');
-      }
+      // Show success message and redirect to login
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (error) {
       console.error('Registration error:', error);
       setErrors({
@@ -123,6 +121,12 @@ const Register = () => {
         {errors.general && (
           <div className="error-message">
             {errors.general}
+          </div>
+        )}
+        
+        {success && (
+          <div className="success-message">
+            ✅ Registration successful! Redirecting to login...
           </div>
         )}
         
@@ -197,21 +201,43 @@ const Register = () => {
             </select>
           </div>
           
-          {formData.role === 'admin' && (
-            <div className="form-group">
-              <label htmlFor="company">Company Name</label>
-              <input
-                type="text"
-                id="company"
-                name="company"
-                value={formData.company}
-                onChange={handleChange}
-                className={errors.company ? 'error' : ''}
-                placeholder="Enter your company name"
-              />
-              {errors.company && <span className="error-text">{errors.company}</span>}
-            </div>
-          )}
+          <div className="form-group">
+            <label htmlFor="location">Location (Optional)</label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              className={errors.location ? 'error' : ''}
+              placeholder="Enter your location"
+            />
+            {errors.location && <span className="error-text">{errors.location}</span>}
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="experience">Experience (Optional)</label>
+            <input
+              type="text"
+              id="experience"
+              name="experience"
+              value={formData.experience}
+              onChange={handleChange}
+              placeholder="e.g., 2-4 years, Entry level"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="skills">Skills (Optional)</label>
+            <textarea
+              id="skills"
+              name="skills"
+              value={formData.skills}
+              onChange={handleChange}
+              placeholder="e.g., React, JavaScript, Node.js"
+              rows="3"
+            />
+          </div>
           
           <div className="form-group">
             <label htmlFor="password">Password</label>

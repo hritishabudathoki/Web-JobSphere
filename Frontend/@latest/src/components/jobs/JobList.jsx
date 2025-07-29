@@ -54,16 +54,11 @@ export default function JobList() {
 
     try {
       const applicationData = {
-        jobId: selectedJob._id,
-        jobTitle: selectedJob.title,
-        candidateName: applicationForm.candidateName,
-        candidateEmail: applicationForm.candidateEmail,
-        candidatePhone: applicationForm.candidatePhone,
         coverLetter: applicationForm.coverLetter,
-        status: 'pending'
+        resume: applicationForm.resume
       };
 
-      await API.applyForJob(selectedJob._id, applicationData);
+      await API.applyForJob(selectedJob.id, applicationData);
       
       // Reset form and close modal
       setApplicationForm({
@@ -150,7 +145,7 @@ export default function JobList() {
       ) : (
         <div className="job-grid">
           {jobs.map(job => (
-            <div key={job._id} className="job-card">
+            <div key={job.id} className="job-card">
               <div className="job-header">
                 <h3 className="job-title">{job.title}</h3>
                 <span className="job-type">{job.type}</span>

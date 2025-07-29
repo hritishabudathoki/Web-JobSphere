@@ -26,7 +26,13 @@ api.interceptors.request.use(
 
 // Handle response errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If the response has a success field and data field, extract the data
+    if (response.data && response.data.success !== undefined) {
+      response.data = response.data.data || response.data;
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid
@@ -51,14 +57,15 @@ const API = {
   deleteJob: (id) => api.delete(`/jobs/${id}`),
   
   // Application endpoints
-  getApplications: () => api.get('/applications'),
-  applyForJob: (jobId, applicationData) => api.post('/applications', { jobId, ...applicationData }),
-  updateApplication: (id, applicationData) => api.put(`/applications/${id}`, applicationData),
+  getApplications: () => api.get('/applications/user/applications'),
+  getAllApplications: () => api.get('/applications/applications'),
+  applyForJob: (jobId, applicationData) => api.post(`/applications/jobs/${jobId}/apply`, applicationData),
+  updateApplication: (id, applicationData) => api.put(`/applications/${id}/status`, applicationData),
   deleteApplication: (id) => api.delete(`/applications/${id}`),
   
   // User endpoints
-  getProfile: () => api.get('/users/profile'),
-  updateProfile: (userData) => api.put('/users/profile', userData),
+  getProfile: () => api.get('/auth/profile'),
+  updateProfile: (userData) => api.put('/auth/profile', userData),
   
   // Health check
   healthCheck: () => api.get('/health'),

@@ -156,9 +156,9 @@ const UserDashboard = () => {
                   </thead>
                   <tbody>
                     {applications.map((application) => (
-                      <tr key={application._id}>
-                        <td>{application.jobTitle}</td>
-                        <td>{application.company}</td>
+                      <tr key={application.id}>
+                        <td>{application.job?.title}</td>
+                        <td>{application.job?.company}</td>
                         <td>{new Date(application.createdAt).toLocaleDateString()}</td>
                         <td>
                           <span className={`status-badge status-${application.status}`}>
