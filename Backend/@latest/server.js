@@ -14,6 +14,7 @@ app.use(express.json());
 // Sample data
 let users = [
   {
+    id: 1,
     _id: 1,
     name: 'John Doe',
     email: 'john@example.com',
@@ -25,6 +26,7 @@ let users = [
     skills: 'React, JavaScript, Node.js'
   },
   {
+    id: 2,
     _id: 2,
     name: 'Admin User',
     email: 'admin@jobsphere.com',
@@ -203,6 +205,7 @@ app.post('/api/auth/register', async (req, res) => {
     // Create new user
     const newUser = {
       id: users.length + 1,
+      _id: users.length + 1,
       firstName,
       lastName,
       email,
